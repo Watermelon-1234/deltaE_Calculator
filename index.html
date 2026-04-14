@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高精度色差計算器 (ΔE Calculator)</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --container-bg: #ffffff;
+            --box-bg: #fafafa;
+            --border-color: #ddd;
+            --input-bg: #ffffff;
+            --input-text: #333;
+            --result-bg: #e8f4f8;
+            --math-bg: #ffffff;
+            --math-border: #bdc3c7;
+            --heading-color: #2c3e50;
+            --sub-heading-color: #2980b9;
+            --sub-heading-bg: #ecf0f1;
+            --hr-color: #ddd;
+            --btn-bg: #3498db;
+            --btn-hover: #2980b9;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --container-bg: #1e1e1e;
+            --box-bg: #2c2c2c;
+            --border-color: #444;
+            --input-bg: #333;
+            --input-text: #eee;
+            --result-bg: #1a2a3a;
+            --math-bg: #1e1e1e;
+            --math-border: #555;
+            --heading-color: #64b5f6;
+            --sub-heading-color: #81d4fa;
+            --sub-heading-bg: #2c3e50;
+            --hr-color: #555;
+            --btn-bg: #1976d2;
+            --btn-hover: #1565c0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--heading-color);
+            margin: 0;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .theme-toggle {
+            background-color: var(--box-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--border-color);
+        }
+
+        .container {
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+
+        .color-section {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .color-box {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--box-bg);
+            width: 40%;
+            min-width: 250px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .input-group {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: bold;
+            width: 40px;
+            text-align: right;
+        }
+
+        input[type="number"], input[type="text"], input[type="color"] {
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        input[type="number"] { width: 60px; }
+        input[type="text"] { width: 80px; text-align: center; text-transform: uppercase;}
+        input[type="color"] { width: 40px; height: 32px; padding: 0; cursor: pointer; border: none; background: none;}
+
+        .preview {
+            width: 100%;
+            height: 80px;
+            margin-top: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s;
+        }
+
+        button.calc-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--btn-bg);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+
+        button.calc-btn:hover {
+            background-color: var(--btn-hover);
+        }
+
+        .result-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: var(--result-bg);
+            border-radius: 8px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        .delta-e {
+            font-size: 36px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+
+        .perception {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .math-steps {
+            margin-top: 20px;
+            padding: 25px;
+            background-color: var(--math-bg);
+            border: 1px dashed var(--math-border);
+            border-radius: 8px;
+            text-align: left;
+            display: none;
+            overflow-x: auto;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .math-steps h3 {
+            color: var(--heading-color);
+            border-bottom: 2px solid var(--hr-color);
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+
+        .math-steps h3:first-child { margin-top: 0; }
+
+        .math-steps h4 {
+            color: var(--sub-heading-color);
+            margin-top: 25px;
+            background: var(--sub-heading-bg);
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--hr-color);
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>高精度色差計算器 (ΔE)</h1>
+        <button class="theme-toggle" onclick="toggleTheme()">切換深色模式 🌙</button>
+    </div>
+    
+    <div class="container">
+        <div class="color-section">
+            <div class="color-box">
+                <h3 style="color: var(--heading-color)">顏色一</h3>
+                <div class="input-group">
+                    <input type="color" id="picker1" value="#CDFF6C">
+                    <input type="text" id="hex1" value="#CDFF6C" maxlength="7">
+                </div>
+                <div class="input-group"><label>R:</label> <input type="number" id="r1" min="0" max="255" value="205"></div>
+                <div class="input-group"><label>G:</label> <input type="number" id="g1" min="0" max="255" value="255"></div>
+                <div class="input-group"><label>B:</label> <input type="number" id="b1" min="0" max="255" value="108"></div>
+                <div id="preview1" class="preview" style="background-color: rgb(205,255,108);"></div>
+            </div>
+
+            <div class="color-box">
+                <h3 style="color: var(--heading-color)">顏色二</h3>
+                <div class="input-group">
+                    <input type="color" id="picker2" value="#1B3E5E">
+                    <input type="text" id="hex2" value="#1B3E5E" maxlength="7">
+                </div>
+                <div class="input-group"><label>R:</label> <input type="number" id="r2" min="0" max="255" value="27"></div>
+                <div class="input-group"><label>G:</label> <input type="number" id="g2" min="0" max="255" value="62"></div>
+                <div class="input-group"><label>B:</label> <input type="number" id="b2" min="0" max="255" value="94"></div>
+                <div id="preview2" class="preview" style="background-color: rgb(27,62,94);"></div>
+            </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculateAndShowMath()">計算色差與顯示逐步推導</button>
+
+        <div class="result-section" id="result-section" style="display: none;">
+            <h2 style="color: var(--heading-color)">計算結果</h2>
+            <div class="delta-e" id="delta-e-value">0.00</div>
+            <div class="perception" id="perception-text"></div>
+        </div>
+
+        <div class="math-steps" id="math-steps"></div>
+    </div>
+
+    <script>
+        // 深色模式切換邏輯
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const btn = document.querySelector('.theme-toggle');
+            if (document.body.classList.contains('dark-mode')) {
+                btn.innerText = "切換淺色模式 ☀️";
+            } else {
+                btn.innerText = "切換深色模式 🌙";
+            }
+        }
+
+        // RGB 轉 HEX
+        function rgbToHex(r, g, b) {
+            return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).toUpperCase();
+        }
+
+        // HEX 轉 RGB
+        function hexToRgb(hex) {
+            let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+                return r + r + g + g + b + b;
+            });
+            let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        // 綁定輸入事件 (RGB更新HEX)
+        function syncRgbToHex(num) {
+            let r = parseInt(document.getElementById(`r${num}`).value) || 0;
+            let g = parseInt(document.getElementById(`g${num}`).value) || 0;
+            let b = parseInt(document.getElementById(`b${num}`).value) || 0;
+            
+            // 防呆
+            if (r > 255) { r = 255; document.getElementById(`r${num}`).value = 255; }
+            if (g > 255) { g = 255; document.getElementById(`g${num}`).value = 255; }
+            if (b > 255) { b = 255; document.getElementById(`b${num}`).value = 255; }
+            if (r < 0) { r = 0; document.getElementById(`r${num}`).value = 0; }
+            if (g < 0) { g = 0; document.getElementById(`g${num}`).value = 0; }
+            if (b < 0) { b = 0; document.getElementById(`b${num}`).value = 0; }
+
+            let hex = rgbToHex(r, g, b);
+            document.getElementById(`hex${num}`).value = hex;
+            document.getElementById(`picker${num}`).value = hex;
+            document.getElementById(`preview${num}`).style.backgroundColor = hex;
+        }
+
+        // 綁定輸入事件 (HEX更新RGB)
+        function syncHexToRgb(num, source) {
+            let hexValue = document.getElementById(source === 'text' ? `hex${num}` : `picker${num}`).value;
+            let rgb = hexToRgb(hexValue);
+            
+            if (rgb) {
+                document.getElementById(`r${num}`).value = rgb.r;
+                document.getElementById(`g${num}`).value = rgb.g;
+                document.getElementById(`b${num}`).value = rgb.b;
+                
+                if (source === 'picker') {
+                    document.getElementById(`hex${num}`).value = hexValue.toUpperCase();
+                } else {
+                    document.getElementById(`picker${num}`).value = hexValue;
+                }
+                document.getElementById(`preview${num}`).style.backgroundColor = hexValue;
+            }
+        }
+
+        // 設置監聽器
+        [1, 2].forEach(num => {
+            ['r', 'g', 'b'].forEach(color => {
+                document.getElementById(`${color}${num}`).addEventListener('input', () => syncRgbToHex(num));
+            });
+            document.getElementById(`hex${num}`).addEventListener('input', () => syncHexToRgb(num, 'text'));
+            document.getElementById(`picker${num}`).addEventListener('input', () => syncHexToRgb(num, 'picker'));
+        });
+
+        // 以下為數學運算邏輯
+        function processColor(rVal, gVal, bVal) {
+            let rRGB = rVal / 255;
+            let gRGB = gVal / 255;
+            let bRGB = bVal / 255;
+
+            let rLin = rRGB <= 0.04045 ? rRGB / 12.92 : Math.pow((rRGB + 0.055) / 1.055, 2.4);
+            let gLin = gRGB <= 0.04045 ? gRGB / 12.92 : Math.pow((gRGB + 0.055) / 1.055, 2.4);
+            let bLin = bRGB <= 0.04045 ? bRGB / 12.92 : Math.pow((bRGB + 0.055) / 1.055, 2.4);
+
+            let x = 0.4124 * rLin + 0.3576 * gLin + 0.1805 * bLin;
+            let y = 0.2126 * rLin + 0.7152 * gLin + 0.0722 * bLin;
+            let z = 0.0193 * rLin + 0.1192 * gLin + 0.9505 * bLin;
+
+            const Xn = 0.9505, Yn = 1.0000, Zn = 1.0890;
+
+            function f(t) { return t > 0.008856 ? Math.pow(t, 1/3) : (7.787 * t) + (16 / 116); }
+
+            let fx = f(x / Xn), fy = f(y / Yn), fz = f(z / Zn);
+
+            let lStar = 116 * fy - 16;
+            let aStar = 500 * (fx - fy);
+            let bStar = 200 * (fy - fz);
+
+            return { R: rVal, G: gVal, B: bVal, rRGB, gRGB, bRGB, rLin, gLin, bLin, x, y, z, lStar, aStar, bStar };
+        }
+
+        function getLinearFormula(valRGB, valLin) {
+            if (valRGB <= 0.04045) {
+                return `\\frac{${valRGB.toFixed(4)}}{12.92} = ${valLin.toFixed(4)}`;
+            } else {
+                return `\\left( \\frac{${valRGB.toFixed(4)} + 0.055}{1.055} \\right)^{2.4} = ${valLin.toFixed(4)}`;
+            }
+        }
+
+        function generateMathStepsForGroup(groupName, c) {
+            return `
+                <h4>【${groupName}】轉換過程</h4>
+                <h5>Step 1: 伽馬壓縮反轉換 (線性化)</h5>
+                <p>原始數值 $R=${c.R}, G=${c.G}, B=${c.B}$：</p>
+                \\[ R_{rgb} = \\frac{${c.R}}{255} = ${c.rRGB.toFixed(4)} \\Rightarrow C_{linear} = ${getLinearFormula(c.rRGB, c.rLin)} \\]
+                \\[ G_{rgb} = \\frac{${c.G}}{255} = ${c.gRGB.toFixed(4)} \\Rightarrow C_{linear} = ${getLinearFormula(c.gRGB, c.gLin)} \\]
+                \\[ B_{rgb} = \\frac{${c.B}}{255} = ${c.bRGB.toFixed(4)} \\Rightarrow C_{linear} = ${getLinearFormula(c.bRGB, c.bLin)} \\]
+
+                <h5>Step 2: 轉換為 XYZ 色彩空間</h5>
+                \\[
+                \\begin{bmatrix} X \\\\ Y \\\\ Z \\end{bmatrix} =
+                \\begin{bmatrix} 0.4124 & 0.3576 & 0.1805 \\\\ 0.2126 & 0.7152 & 0.0722 \\\\ 0.0193 & 0.1192 & 0.9505 \\end{bmatrix}
+                \\begin{bmatrix} ${c.rLin.toFixed(4)} \\\\ ${c.gLin.toFixed(4)} \\\\ ${c.bLin.toFixed(4)} \\end{bmatrix} =
+                \\begin{bmatrix} ${c.x.toFixed(4)} \\\\ ${c.y.toFixed(4)} \\\\ ${c.z.toFixed(4)} \\end{bmatrix}
+                \\]
+
+                <h5>Step 3: 轉換為 CIELAB 空間 (參考白點 D65)</h5>
+                \\[ L^* = 116 \\times f(\\frac{${c.y.toFixed(4)}}{1.0000}) - 16 = ${c.lStar.toFixed(4)} \\]
+                \\[ a^* = 500 \\times \\left( f(\\frac{${c.x.toFixed(4)}}{0.9505}) - f(\\frac{${c.y.toFixed(4)}}{1.0000}) \\right) = ${c.aStar.toFixed(4)} \\]
+                \\[ b^* = 200 \\times \\left( f(\\frac{${c.y.toFixed(4)}}{1.0000}) - f(\\frac{${c.z.toFixed(4)}}{1.0890}) \\right) = ${c.bStar.toFixed(4)} \\]
+            `;
+        }
+
+        function calculateAndShowMath() {
+            let r1 = Number(document.getElementById('r1').value);
+            let g1 = Number(document.getElementById('g1').value);
+            let b1 = Number(document.getElementById('b1').value);
+            let r2 = Number(document.getElementById('r2').value);
+            let g2 = Number(document.getElementById('g2').value);
+            let b2 = Number(document.getElementById('b2').value);
+
+            let c1 = processColor(r1, g1, b1);
+            let c2 = processColor(r2, g2, b2);
+
+            let deltaE = Math.sqrt(
+                Math.pow(c2.lStar - c1.lStar, 2) + 
+                Math.pow(c2.aStar - c1.aStar, 2) + 
+                Math.pow(c2.bStar - c1.bStar, 2)
+            );
+
+            let perceptionText = "";
+            if (deltaE <= 1) perceptionText = "判斷：人眼不易察覺差異 (ΔE ≤ 1)";
+            else if (deltaE <= 2) perceptionText = "判斷：仔細觀察可以感受差異 (ΔE ≤ 2)";
+            else if (deltaE <= 10) perceptionText = "判斷：隨意觀察可以感受差異 (ΔE ≤ 10)";
+            else perceptionText = "判斷：差異極大，明顯是不同顏色 (ΔE > 10)";
+
+            document.getElementById('result-section').style.display = 'block';
+            document.getElementById('delta-e-value').innerText = "ΔE = " + deltaE.toFixed(4);
+            document.getElementById('perception-text').innerText = perceptionText;
+
+            let mathHTML = `
+                <h3>詳細運算步驟</h3>
+                ${generateMathStepsForGroup('顏色一', c1)}
+                <hr>
+                ${generateMathStepsForGroup('顏色二', c2)}
+                <hr>
+                <h3>Step 4: 計算 $\\Delta E_{76}$ 歐幾里得距離</h3>
+                <ul>
+                    <li><strong>顏色一：</strong> $L_1^*=${c1.lStar.toFixed(4)}, a_1^*=${c1.aStar.toFixed(4)}, b_1^*=${c1.bStar.toFixed(4)}$</li>
+                    <li><strong>顏色二：</strong> $L_2^*=${c2.lStar.toFixed(4)}, a_2^*=${c2.aStar.toFixed(4)}, b_2^*=${c2.bStar.toFixed(4)}$</li>
+                </ul>
+                \\[ \\Delta E_{ab}^* = \\sqrt{(L_2^* - L_1^*)^2 + (a_2^* - a_1^*)^2 + (b_2^* - b_1^*)^2} \\]
+                \\[ \\Delta E_{ab}^* = \\sqrt{(${c2.lStar.toFixed(4)} - ${c1.lStar.toFixed(4)})^2 + (${c2.aStar.toFixed(4)} - ${c1.aStar.toFixed(4)})^2 + (${c2.bStar.toFixed(4)} - ${c1.bStar.toFixed(4)})^2} \\]
+                \\[ \\Delta E_{ab}^* = \\sqrt{${Math.pow(c2.lStar - c1.lStar, 2).toFixed(4)} + ${Math.pow(c2.aStar - c1.aStar, 2).toFixed(4)} + ${Math.pow(c2.bStar - c1.bStar, 2).toFixed(4)}} = ${deltaE.toFixed(4)} \\]
+            `;
+
+            let mathDiv = document.getElementById('math-steps');
+            mathDiv.innerHTML = mathHTML;
+            mathDiv.style.display = 'block';
+
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise([mathDiv]).catch(function (err) {
+                    console.log('MathJax 渲染失敗: ', err.message);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
